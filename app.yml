@@ -1,0 +1,10 @@
+#ansible-playbook app.yml -i hosts --connection=local --extra-vars "ansible_sudo_pass=welcome@123"
+---
+- hosts: all
+  tasks:
+   - name: apache2 installation
+     become: yes
+     apt:
+       name: apache2
+       state: absent
+       update_cache: yes
