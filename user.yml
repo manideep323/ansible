@@ -1,0 +1,11 @@
+---
+- hosts: test
+  vars:
+    username: manideepg
+  tasks:  
+    - name: adding user
+      become: yes
+      user:
+        name: '{{ username }}'
+        password: 'welcome@123'
+        state: absent
