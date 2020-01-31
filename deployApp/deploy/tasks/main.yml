@@ -1,0 +1,8 @@
+---
+# tasks file for deploy
+  - name: adding user
+    become: yes
+    user:
+      name: '{{ username }}'
+      password: 'welcome@123'
+      state: present

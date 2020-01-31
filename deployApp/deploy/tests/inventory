@@ -1,0 +1,2 @@
+[test]
+ec2-instance ansible_host=ec2-13-233-116-204.ap-south-1.compute.amazonaws.com ansible_user=ubuntu ansible_ssh_private_key_file=/home/manideepg/Downloads/office_instance.pem

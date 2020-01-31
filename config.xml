@@ -1,0 +1,124 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>please_choose_type_of_dlo</name>
+          <description></description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>activities</string>
+              <string>svg-concept-maps</string>
+              <string>keywords</string>
+              <string>Concept-Map</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>dlos</name>
+          <description></description>
+          <defaultValue></defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>upload_to_s3</name>
+          <description></description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>copy_or_sync</name>
+          <description></description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>cp</string>
+              <string>sync</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+dlos=$dlos
+please_choose_type_of_dlo=$please_choose_type_of_dlo
+floder_name=$(date +&apos;%d-%m-%Y-%I:%M:%S:%p&apos;)_buildNumber_${BUILD_NUMBER}:$please_choose_type_of_dlo
+echo &quot;flodername ********&quot;$floder_name
+mkdir $floder_name
+cd $floder_name
+echo &quot;current directory *********&quot;$(pwd)
+
+declare -a arr=($dlos)
+for array_loop in &quot;${arr[@]}&quot;; do
+    if [[ $array_loop == m* || $array_loop == M* ]]; then
+        git clone git@git.fortunapix.com:math-activities/$please_choose_type_of_dlo/$array_loop.git
+    else
+        git clone git@git.fortunapix.com:science-activities/$please_choose_type_of_dlo/$array_loop.git
+        if [ $? != 0 ]; then
+            git clone git@git.fortunapix.com:html/primary-activity-03/$array_loop.git
+        fi
+    fi
+done
+echo &quot;#################	cloning completed...!&quot;
+if [[ $please_choose_type_of_dlo == activities ]]; then
+    for activitiFiles in *; do
+        (cd $activitiFiles &amp;&amp; git pull &amp;&amp; git submodule update --init --recursive &amp;&amp; git submodule foreach git checkout lernwise &amp;&amp; git submodule foreach git pull origin lernwise)
+    done
+    for scriptFiles in */*/*; do
+        #echo $i
+        if [[ &quot;$scriptFiles&quot; == *insert* ]]; then
+            echo &quot;****************************insert***************&quot;
+            #(cd $scriptFiles &amp;&amp; git checkout lernwise &amp;&amp; git submodule update --remote)
+        elif [[ &quot;$scriptFiles&quot; == *common* ]]; then
+            echo &quot;****************************common***************&quot;
+            (cd $scriptFiles &amp;&amp; git checkout b2c)
+        fi
+    done
+    rm -rf */.git*
+    rm -rf */*/.git*
+    rm -rf */*/*/.git*
+    find ./ -type f \( -iname \Thumbs.db -o -iname \*.pdf -o -iname \*.docx -o -iname \*.docx \) -delete
+elif [[ $please_choose_type_of_dlo == &quot;Concept-Map&quot; ]]; then
+    for conceptMapFiles in *; do
+        (cd $conceptMapFiles &amp;&amp; git pull &amp;&amp; git submodule sync --recursive &amp;&amp; git submodule update --init --recursive &amp;&amp; git submodule update --recursive --remote &amp;&amp; git submodule -q foreach git pull -q origin master)
+    done
+    rm -rf */.git*
+    rm -rf */*/.git*
+    find ./ -type f \( -iname \Thumbs.db -o -iname \*.pdf -o -iname \*.docx -o -iname \*.docx \) -delete
+elif [[ $please_choose_type_of_dlo == &quot;svg-concept-maps&quot; || $please_choose_type_of_dlo == &quot;keywords&quot; ]]; then
+    rm -rf */.git*
+    find ./ -type f \( -iname \Thumbs.db -o -iname \*.pdf -o -iname \*.docx -o -iname \*.docx \) -delete
+
+fi
+echo &quot;#################	ready for uploading in s3 completed...!&quot;
+
+if $upload_to_s3; then
+
+    if [[ $please_choose_type_of_dlo == activities ]]; then
+        aws s3 $copy_or_sync . s3://b2c-content/htmls/ --recursive --region ap-southeast-1 --profile office || aws s3 $copy_or_sync . s3://b2c-content/htmls/ --region ap-southeast-1 --profile office
+    elif [[ $please_choose_type_of_dlo == &quot;Concept-Map&quot; || $please_choose_type_of_dlo == &quot;svg-concept-maps&quot; ]]; then
+        echo aws s3 $copy_or_sync . s3://b2c-content/htmls/conceptMaps/ --recursive --region ap-southeast-1 --profile office || aws s3 $copy_or_sync . s3://b2c-content/htmls/conceptMaps/ --region ap-southeast-1 --profile office
+        aws s3 $copy_or_sync . s3://b2c-content/htmls/conceptMaps/ --recursive --region ap-southeast-1 --profile office || aws s3 $copy_or_sync . s3://b2c-content/htmls/conceptMaps/ --region ap-southeast-1 --profile office
+    elif [[ $please_choose_type_of_dlo == &quot;keywords&quot; ]]; then
+        aws s3 $copy_or_sync . s3://b2c-content/htmls/Keywords/ --recursive --region ap-southeast-1 --profile office || aws s3 $copy_or_sync . s3://b2c-content/htmls/Keywords/ --region ap-southeast-1 --profile office
+    fi
+fi
+echo &quot;#################	uploaded to s3 completed...!&quot;
+</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>
